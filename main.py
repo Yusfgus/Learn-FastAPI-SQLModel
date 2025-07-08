@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query, Path
+from typing import Annotated
 from schemas import *
 
 
@@ -26,41 +27,62 @@ def add_50(num: int) -> int:
 
 # List of student dictionaries with id, name, age, and job
 student_list = [
-    {"id": 1, "name": "Alice", "age": 20, "departement": 'cs', "subjects": [Subject(name="Math", hours=3), Subject(name="Physics", hours=4)]},
-    {"id": 2, "name": "Bob", "age": 22, "departement": "IS"},
-    {"id": 3, "name": "Charlie", "age": 23, "departement": "sc"},
-    {"id": 4, "name": "David", "age": 21, "departement": "cs"},
-    {"id": 5, "name": "Eve", "age": 22, "departement": 'Csys'},
+    {"id": 1, "name": "Alice", "age": 20, "department": 'cs', "subjects": [Subject(name="Math", hours=3), Subject(name="Physics", hours=4)]},
+    {"id": 2, "name": "Bob", "age": 22, "department": "IS"},
+    {"id": 3, "name": "Charlie", "age": 23, "department": "sc", "subjects": [{"name": "Chemistry", "hours": 3},]},
+    {"id": 4, "name": "David", "age": 21, "department": "cs"},
+    {"id": 5, "name": "Eve", "age": 22, "department": 'Csys'},
 ]
 
 
-# Endpoint to get all students or filter by departement
+# Endpoint to get all students or filter by department or age or id
 @app.get("/students")
-def get_students(departement: Departement | None = None) -> list[StudentWithID]:
-    if departement is not None:
-        # If departement is provided, filter the student list
-        return [StudentWithID(**student) for student in student_list if student["departement"].lower() == departement.value]
-    else:
-        # If no departement is provided, return all students
-        return [StudentWithID(**student) for student in student_list]
+def get_students(
+    id: Annotated[int | None, Query(gt=0)] = None,
+    department: Department | None = None,
+    age: Annotated[int | None, Query(gt=0, le=100)] = None,
+    limit: Annotated[int | None, Query(gt=0)] = None,
+    skip: Annotated[int | None, Query(gt=0)] = None,
+    ) -> list[StudentWithID]:
+    
+    filtered_students = [StudentWithID(**s) for s in student_list]
+
+    if id is not None:
+        # If id is provided, filter the student list
+        filtered_students = [s for s in filtered_students if s.id == id]
+
+    if department is not None:
+        # If department is provided, filter the student list
+        filtered_students = [s for s in filtered_students if s.department.lower() == department.value]
+
+    if age is not None:
+        # If age is provided, filter the student list
+        filtered_students = [s for s in filtered_students if s.age == age]
+
+    if skip is not None:
+        # If skip is provided, apply the skip to the student list
+        filtered_students = filtered_students[skip:]
+
+    if limit is not None:
+        # If limit is provided, apply the limit to the student list
+        filtered_students = filtered_students[:limit]
+
+    return filtered_students
 
 
 # Endpoint to get a single student by id
 @app.get("/students/{student_id}")
-def get_student_by_id(student_id: int) -> StudentWithID:
+def get_student_by_id(student_id: Annotated[int, Path(title="Student ID")]) -> StudentWithID:
     for student in student_list:
         if student["id"] == student_id:
             return StudentWithID(**student)
     raise HTTPException(status_code=404, detail="student not found")
 
 
-# Endpoint to get students by departement type
-@app.get("/students/departements/{departement_type}")
-def get_student_by_job(departement_type: Departement) -> list[StudentWithID]:
-    filtered_students = [student for student in student_list if student["departement"].lower() == departement_type.value]
-    if not filtered_students:
-        raise HTTPException(status_code=404, detail="No students found for this departement type")
-    return filtered_students
+# Endpoint to get students by department type
+@app.get("/departments")
+def get_all_department() -> list[str]:
+    return Department.__members__.keys()
 
 
 @app.post("/students/add")
@@ -71,4 +93,4 @@ def add_student(new_student: StudentCreate) -> StudentWithID:
     return student
 
 
-print("Every thing good")
+print("============= Every thing's good ================")
