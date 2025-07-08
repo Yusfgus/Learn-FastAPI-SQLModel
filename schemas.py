@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 
 # Enum for allowed departement types
@@ -12,16 +12,26 @@ class Departement(Enum):
 
 # Pydantic model for Subject
 class Subject(BaseModel):
-    id: int
     name: str
     hours: int
 
 
 # Pydantic model for Student
-class Student(BaseModel):
-    id: int
+class StudentBase(BaseModel):
     name: str
     age: int
     departement: str
     subjects: list[Subject] = []  # List of subjects, default is empty list
 
+
+from pydantic import field_validator
+
+class StudentCreate(StudentBase):
+    @field_validator('departement', mode='before')
+    @classmethod
+    def title_case_dept(cls, value):
+        return value.title()
+
+
+class StudentWithID(StudentBase):
+    id: int
