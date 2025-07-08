@@ -11,3 +11,8 @@ def init_db():
     SQLModel.metadata.create_all(engine)
 
 
+# Function to get a session for database operations
+def get_session():
+    """Get a session for database operations."""
+    with Session(engine) as session:
+        yield session

@@ -1,7 +1,7 @@
 from enum import Enum
 from pydantic import BaseModel, field_validator
 from sqlmodel import Field, SQLModel, Relationship
-
+from typing import Optional
 
 # Enum for allowed departement types
 class Department(Enum):
@@ -33,16 +33,24 @@ class Department(Enum):
 class GPBase(SQLModel):
     title: str
     description: str
-    student_id: int = Field(foreign_key='StudentTable.id', unique=True)  # Foreign key to Student
 
 
 # SQLModel model for Graduation project
 class GP(GPBase, table=True):
-    __tablename__ = 'GPTable'  # Table name for SQLModel
+    __tablename__ = 'GPTable'
 
-    id: int = Field(default=None, primary_key=True)  # Project ID, primary key
-    # Relationship to Student
-    student_rl: 'Student' = Relationship(back_populates='gp_rl')
+    id: Optional[int] = Field(default=None, primary_key=True)
+    
+    # Foreign key to student
+    student_id: int = Field(foreign_key='StudentTable.id', unique=True)
+
+    # Relationship back to student
+    student_rl: Optional["Student"] = Relationship(back_populates='gp_rl')
+
+
+class GPCreate(GPBase):
+    pass
+
 
 
 # ===== Student ============================================================================================
@@ -60,8 +68,11 @@ class Student(StudentBase, table=True):
     __tablename__ = 'StudentTable'  # Table name for SQLModel
 
     id: int = Field(default=None, primary_key=True)  # Student ID, primary key
+
+    # Many-to-many relationship to Subject
     # subjects_rl: list[Subject] = Relationship(back_populates='students_rl')
-    # Relationship to Graduation Project
+
+    # One-to-one relationship to Graduation Project
     gp_rl: GP | None = Relationship(back_populates='student_rl')
 
 
@@ -72,5 +83,7 @@ class StudentCreate(StudentBase):
 
     @field_validator('department', mode='before')
     @classmethod
-    def title_case_dept(cls, value):
-        return value.title()
+    def lower_case_dept(cls, value):
+        return value.lower()
+
+
