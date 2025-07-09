@@ -10,6 +10,9 @@ engine = create_engine(DATABASE_URL, echo=True)
 def init_db():
     SQLModel.metadata.create_all(engine)
 
+# if __name__ == "__main__":
+#     # Initialize the database when running this script directly
+#     init_db()
 
 # Function to get a session for database operations
 def get_session():

@@ -1,20 +1,11 @@
 from fastapi import FastAPI, HTTPException, Query, Path, Depends
 from typing import Annotated
 from models import *
-from contextlib import asynccontextmanager
 from db import init_db, get_session
 from sqlmodel import Session, select
 
-# # Initialize the database
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     # Initialize the database
-#     init_db()
-#     yield
-#     # Here you can add any cleanup code if needed
 
 # # Create FastAPI app instance
-# app = FastAPI(lifespan=lifespan)
 app = FastAPI()
 
 
@@ -47,27 +38,30 @@ def get_students(
     session: Session = Depends(get_session),
 ) -> list[Student]:
     
-    filtered_students = session.exec(select(Student)).all()
+    statement = select(Student)
 
     if id is not None:
         # If id is provided, filter the student list
-        filtered_students = [s for s in filtered_students if s.id == id]
+        statement = statement.where(Student.id == id)
 
     if department is not None:
         # If department is provided, filter the student list
-        filtered_students = [s for s in filtered_students if s.department.lower() == department.value]
+        statement = statement.where(Student.department == department)
 
     if age is not None:
         # If age is provided, filter the student list
-        filtered_students = [s for s in filtered_students if s.age == age]
+        statement = statement.where(Student.age == age) 
 
     if skip is not None:
         # If skip is provided, apply the skip to the student list
-        filtered_students = filtered_students[skip:]
+        statement = statement.offset(skip)
 
     if limit is not None:
         # If limit is provided, apply the limit to the student list
-        filtered_students = filtered_students[:limit]
+        statement = statement.limit(limit)
+
+    # Execute the query and return the results
+    filtered_students = session.exec(statement).all()
 
     return filtered_students
 
