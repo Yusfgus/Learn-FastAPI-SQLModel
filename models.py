@@ -42,10 +42,10 @@ class GP(GPBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     
     # Foreign key to student
-    student_id: int = Field(foreign_key='StudentTable.id', unique=True)
+    student_id: int | None = Field(default=None, foreign_key='StudentTable.id', unique=True)
 
     # Relationship back to student
-    student_rl: Optional["Student"] = Relationship(back_populates='gp_rl')
+    student: Optional["Student"] = Relationship(back_populates='graduation_project')
 
 
 class GPCreate(GPBase):
@@ -73,7 +73,7 @@ class Student(StudentBase, table=True):
     # subjects_rl: list[Subject] = Relationship(back_populates='students_rl')
 
     # One-to-one relationship to Graduation Project
-    gp_rl: GP | None = Relationship(back_populates='student_rl')
+    graduation_project: GP | None = Relationship(back_populates='student')
 
 
 # SQLModel model for Student create
@@ -87,3 +87,23 @@ class StudentCreate(StudentBase):
         return value.lower()
 
 
+# SQLModel model for Student update
+class StudentUpdate(SQLModel):
+    name: Optional[str] = None
+    age: Optional[int] = None
+    department: Optional[Department] = None
+
+    @field_validator('department', mode='before')
+    @classmethod
+    def lower_case_dept(cls, value):
+        return value.lower() if value else value
+    
+
+# SQLModel model for Student read
+class StudentRead(StudentBase):
+    id: int
+    # subjects_rl: list[Subject] = []  # Subjects relationship, can be empty
+    graduation_project: Optional[GP] = None  # Graduation project relationship, can be None
+
+    class Config:
+        orm_mode = True  # Enable ORM mode for compatibility with SQLModel

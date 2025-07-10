@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query, Path, Depends
 from typing import Annotated
-from models import *
+from models import *  # Ensure StudentUpdate is defined in models.py or import it directly
 from db import init_db, get_session
 from sqlmodel import Session, select
 
@@ -28,7 +28,7 @@ def add_50(num: int) -> int:
 
 
 # Endpoint to get all students or filter by department or age or id
-@app.get("/students")
+@app.get("/students", response_model=list[StudentRead])
 def get_students(
     id: Annotated[int | None, Query(gt=0)] = None,
     department: Department | None = None,
@@ -67,7 +67,7 @@ def get_students(
 
 
 # Endpoint to get a single student by id
-@app.get("/students/{student_id}")
+@app.get("/students/{student_id}", response_model=StudentRead)
 def get_student_by_id(
     student_id: Annotated[int, Path(title="Student ID")],
     session: Session = Depends(get_session),
@@ -76,7 +76,7 @@ def get_student_by_id(
     student = session.get(Student, student_id)
     if student is None:
         raise HTTPException(status_code=404, detail="student not found")
-    
+
     return student
 
 
@@ -86,7 +86,7 @@ def get_student_by_id(
 #     return Department.__members__.keys()
 
 
-@app.post("/students/add")
+@app.post("/students/add", response_model=StudentRead)
 def add_student(
     student_data: StudentCreate,
     session: Session = Depends(get_session),
@@ -117,4 +117,50 @@ def add_student(
     return student_obj
 
 
-# print("============= Every thing's good ================")
+# update student by id
+@app.put("/students/{student_id}", response_model=StudentRead)
+def update_student(
+    student_id: Annotated[int, Path(title="Student ID")],
+    student_data: StudentUpdate,
+    session: Session = Depends(get_session),
+) -> Student:
+
+    student = session.get(Student, student_id)
+    if student is None:
+        raise HTTPException(status_code=404, detail="student not found")
+
+    # Update the student's attributes
+    if student_data.name is not None:
+        student.name = student_data.name
+    if student_data.age is not None:
+        student.age = student_data.age
+    if student_data.department is not None:
+        student.department = student_data.department
+
+    session.add(student)
+    session.commit()
+    session.refresh(student)
+
+    return student
+
+
+# delete student by id
+@app.delete("/students/{student_id}")
+def delete_student(
+    student_id: Annotated[int, Path(title="Student ID")],
+    session: Session = Depends(get_session),
+) -> dict:
+    
+    student = session.get(Student, student_id)
+    if student is None:
+        raise HTTPException(status_code=404, detail="student not found")
+
+    session.delete(student)
+    session.commit()
+
+    return {
+        "student": student,
+        "message": "student deleted successfully"
+    }
+
+print("============= Every thing's good ================")
