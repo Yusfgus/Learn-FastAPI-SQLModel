@@ -2,6 +2,8 @@
 *.db
 *.sqlite3
 
+# Other files
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

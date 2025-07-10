@@ -1,8 +1,16 @@
 from fastapi import FastAPI, HTTPException, Query, Path, Depends
 from typing import Annotated
 from models import *  # Ensure StudentUpdate is defined in models.py or import it directly
-from db import init_db, get_session
+from db import init_db, get_session, drop_table
 from sqlmodel import Session, select
+
+
+# Initialize the database
+if __name__ == "__main__":
+    print("run main.py")
+    # Initialize the database when running this script directly
+    drop_table(table=Email)
+    init_db()
 
 
 # # Create FastAPI app instance
@@ -110,7 +118,7 @@ def add_student(
         department=student_data.department,
         graduation_project=gp_obj,  # Set the GP object if provided
     )
-    session.add(student_obj) # Add the student object directly if no graduation project is provided
+    session.add(student_obj)
     session.commit()
 
     # session.refresh(student_obj)  # Refresh the student object to get the updated data
@@ -147,7 +155,7 @@ def update_student(
 
 
 # delete student by id
-@app.delete("/students/{student_id}")
+@app.delete("/students/{student_id}", response_model=dict[str, str | StudentRead])
 def delete_student(
     student_id: Annotated[int, Path(title="Student ID")],
     session: Session = Depends(get_session),
@@ -157,6 +165,8 @@ def delete_student(
     if student is None:
         raise HTTPException(status_code=404, detail="student not found")
 
+    # student_read = StudentRead(student=student)
+
     session.delete(student)
     session.commit()
 
@@ -164,5 +174,54 @@ def delete_student(
         "student": student,
         "message": "student deleted successfully"
     }
+
+
+# get all graduation projects
+@app.get("/GP", response_model=list[GPRead])
+def get_graduation_projects(
+    session: Session = Depends(get_session),
+) -> list[GP]:
+    
+    statement = select(GP)
+    graduation_projects = session.exec(statement).all()
+
+    return graduation_projects
+
+
+@app.put("/students/{student_id}/emails/add", response_model=EmailRead)
+def update_student_email(
+    student_id: Annotated[int, Path(title="Student ID")],
+    email_data: EmailBase,
+    session: Session = Depends(get_session),
+) -> Email:
+    
+    student = session.get(Student, student_id)
+    if student is None:
+        raise HTTPException(status_code=404, detail="student not found")
+
+    email = Email(
+        email=email_data.email,
+        password=email_data.password,
+        student_id=student.id,  # Associate the email with the student
+    )
+
+    student.emails.append(email)
+    # session.add(email)
+    session.add(student)
+    session.commit()
+
+    return email
+
+
+@app.get("/emails", response_model=list[EmailRead])
+def get_emails(
+    session: Session = Depends(get_session),
+) -> list[EmailRead]:
+    
+    statement = select(Email)
+    emails = session.exec(statement).all()
+
+    return emails
+
 
 print("============= Every thing's good ================")

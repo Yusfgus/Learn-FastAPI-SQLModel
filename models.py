@@ -42,7 +42,7 @@ class GP(GPBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     
     # Foreign key to student
-    student_id: int | None = Field(default=None, foreign_key='StudentTable.id', unique=True)
+    student_id: int | None = Field(default=None, foreign_key='StudentTable.id', unique=True, ondelete="SET NULL")
 
     # Relationship back to student
     student: Optional["Student"] = Relationship(back_populates='graduation_project')
@@ -52,6 +52,40 @@ class GPCreate(GPBase):
     pass
 
 
+class GPRead(GPBase):
+    id: int
+    student_id: Optional[int] = None  # Student ID, can be None if not assigned
+
+    class Config:
+        orm_mode = True  # Enable ORM mode for compatibility with SQLModel
+
+
+# ===== Email ============================================================================================
+
+
+class EmailBase(SQLModel):
+    email: str
+    password: str
+
+
+# SQLModel model for Email
+class Email(EmailBase, table=True):
+    __tablename__ = 'EmailTable'  # Table name for SQLModel
+
+    id: int = Field(default=None, primary_key=True)  # Email ID, primary key
+
+    # One-to-one relationship to Student
+    student_id: int | None = Field(default=None, foreign_key='StudentTable.id', ondelete="CASCADE")
+    student: Optional["Student"] = Relationship(back_populates='emails')
+
+
+# SQLModel model for Email read
+class EmailRead(EmailBase):
+    id: int
+    student_id: Optional[int] = None  # Student ID, can be None if not assigned
+
+    class Config:
+        orm_mode = True  # Enable ORM mode for compatibility with SQLModel
 
 # ===== Student ============================================================================================
 
@@ -74,6 +108,9 @@ class Student(StudentBase, table=True):
 
     # One-to-one relationship to Graduation Project
     graduation_project: GP | None = Relationship(back_populates='student')
+
+    # Many-to-one relationship to Email
+    emails: list[Email] = Relationship(back_populates='student', cascade_delete=True)
 
 
 # SQLModel model for Student create
@@ -103,7 +140,18 @@ class StudentUpdate(SQLModel):
 class StudentRead(StudentBase):
     id: int
     # subjects_rl: list[Subject] = []  # Subjects relationship, can be empty
-    graduation_project: Optional[GP] = None  # Graduation project relationship, can be None
+    graduation_project: Optional[GPRead] = None  # Graduation project relationship, can be None
+    emails: list[EmailRead] = []  # Emails relationship, can be empty
 
     class Config:
         orm_mode = True  # Enable ORM mode for compatibility with SQLModel
+
+    def __init__(self, student: Student):
+        super().__init__(
+            name=student.name, 
+            age=student.age, 
+            department=student.department, 
+            id=student.id, 
+            graduation_project=student.graduation_project,
+            emails=student.emails,
+        )

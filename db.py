@@ -1,39 +1,29 @@
 from sqlmodel import create_engine, SQLModel, Session
-from models import Student, GP
+
+from models import Email
+
 
 # Database URL
 DATABASE_URL = "sqlite:///./students.db"
 
+
 # Create the database engine
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=True) # remove echo=True in production
+
 
 # Function to create the database tables
 def init_db():
+    print("Initializing the database...")
     SQLModel.metadata.create_all(engine)
 
-def get_student():
-    """Get a student by ID."""
-    student_id: int = int(input("Enter student ID: "))
-    with Session(engine) as session:
-        student = session.get(Student, student_id)
-        if not student:
-            raise ValueError(f"Student with ID {student_id} not found.")
-        else:
-            print("Student found: ", student)
-            if student.gp_rl:
-                print("Graduation Project:", student.gp_rl)
-            else:
-                print("No Graduation Project assigned.")
-    
-
-if __name__ == "__main__":
-    print("run db.py")
-    # Initialize the database when running this script directly
-    # init_db()
-    get_student()
 
 # Function to get a session for database operations
 def get_session():
     """Get a session for database operations."""
     with Session(engine) as session:
         yield session
+    
+
+def drop_table(table: SQLModel):
+    """Drop the Email table if it exists."""
+    SQLModel.metadata.drop_all(engine, tables=[table.__table__])
