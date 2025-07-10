@@ -92,27 +92,29 @@ def add_student(
     session: Session = Depends(get_session),
 ) -> Student:
 
+    '''
+    Notice that:
+        we can create the student first then pass it as a parameter to the GP relationship,
+        or we can create the GP first and pass it as a parameter to the student relationship
+    '''
+
+    gp_obj = GP(
+        title=student_data.graduation_project.title,
+        description=student_data.graduation_project.description,
+        # student_id=student_obj.id,  # No need to set student_id here, it will be set automatically
+    ) if student_data.graduation_project else None
+
     student_obj = Student(
         name=student_data.name,
         age=student_data.age,
         department=student_data.department,
+        graduation_project=gp_obj,  # Set the GP object if provided
     )
-    session.add(student_obj)
-    session.commit()  # Commit to generate the student ID
-    session.refresh(student_obj)  # Refresh to get the generated ID
+    session.add(student_obj) # Add the student object directly if no graduation project is provided
+    session.commit()
 
-    if student_data.graduation_project:
-        gp_obj = GP(
-            title=student_data.graduation_project.title,
-            description=student_data.graduation_project.description,
-            student_id=student_obj.id,  # Set the foreign key
-        )
-        session.add(gp_obj)
-        session.commit()
-        session.refresh(gp_obj)  # Refresh to get the updated student object
-        print("============ gp_obj = ", gp_obj)
-
-    print("============ student_obj = ", student_obj)
+    # session.refresh(student_obj)  # Refresh the student object to get the updated data
+    # print("======== New student: ", student_obj)
 
     return student_obj
 
