@@ -2,9 +2,9 @@ from enum import Enum
 from pydantic import BaseModel, field_validator
 from sqlmodel import Field, SQLModel, Relationship
 from typing import Optional
-from models.subject_model import Subject, StudentSubjectLink, SubjectBase, SubjectRead
-from models.GP_model import GP, GPBase, GPRead
-from models.email_model import Email, EmailRead
+from models.subject_model import Subject, StudentSubjectLink, SubjectBase, SubjectPuplic
+from models.GP_model import GP, GPBase, GPPuplic, GPCreate
+from models.email_model import Email, EmailPuplic
 
 
 # Enum for allowed departement types
@@ -43,7 +43,7 @@ class Student(StudentBase, table=True):
 # SQLModel model for Student create
 class StudentCreate(StudentBase):
     # subjects: list[SubjectBase] | None = None
-    graduation_project: GPBase | None = None
+    graduation_project: GPCreate | None = None
 
     @field_validator('department', mode='before')
     @classmethod
@@ -53,9 +53,9 @@ class StudentCreate(StudentBase):
 
 # SQLModel model for Student update
 class StudentUpdate(SQLModel):
-    name: Optional[str] = None
-    age: Optional[int] = None
-    department: Optional[Department] = None
+    name: str | None = None
+    age: int | None = None
+    department: Department | None = None
 
     @field_validator('department', mode='before')
     @classmethod
@@ -63,15 +63,15 @@ class StudentUpdate(SQLModel):
         return value.lower() if value else value
     
 
-# SQLModel model for Student read
-class StudentRead(StudentBase):
+# SQLModel model for Student Puplic
+class StudentPuplic(StudentBase):
     id: int
-    # subjects: list[SubjectRead] = []  # Subjects relationship, can be empty
-    graduation_project: Optional[GPRead] = None  # Graduation project relationship, can be None
-    emails: list[EmailRead] = []  # Emails relationship, can be empty
+    # subjects: list[SubjectPuplic] = []  # Subjects relationship, can be empty
+    graduation_project: GPPuplic | None = None  # Graduation project relationship, can be None
+    emails: list[EmailPuplic] = []  # Emails relationship, can be empty
 
     class Config:
-        orm_mode = True  # Enable ORM mode for compatibility with SQLModel
+        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
 
     def __init__(self, student: Student):
         super().__init__(

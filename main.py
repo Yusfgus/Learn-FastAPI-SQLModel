@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException, Query, Path, Depends
 from typing import Annotated
-from models.student_model import Student, StudentCreate, StudentUpdate, StudentRead, Department
-from models.GP_model import GP, GPCreate, GPRead
-from models.email_model import Email, EmailBase, EmailRead
-from models.subject_model import Subject, SubjectCreate, SubjectRead
+from models.student_model import Student, StudentCreate, StudentUpdate, StudentPuplic, Department
+from models.GP_model import GP, GPCreate, GPPuplic
+from models.email_model import Email, EmailBase, EmailCreate, EmailPuplic, EmailUpdate, hash_password, verify_password
+from models.subject_model import Subject, SubjectCreate, SubjectPuplic
 from db import init_db, get_session, drop_table
 from sqlmodel import Session, select
 
@@ -18,6 +18,11 @@ if __name__ == "__main__":
 
 # # Create FastAPI app instance
 app = FastAPI()
+
+
+# @app.on_event("startup")
+# def on_startup():
+#     print("Starting up the FastAPI application...")
 
 
 # Root endpoint
@@ -39,21 +44,16 @@ def add_50(num: int) -> int:
 
 
 # Endpoint to get all students or filter by department or age or id
-@app.get("/students", response_model=list[StudentRead])
+@app.get("/students", response_model=list[StudentPuplic])
 def get_students(
-    id: Annotated[int | None, Query(gt=0)] = None,
     department: Department | None = None,
     age: Annotated[int | None, Query(gt=0, le=100)] = None,
-    limit: Annotated[int | None, Query(gt=0)] = None,
-    skip: Annotated[int | None, Query(gt=0)] = None,
+    limit: Annotated[int, Query(gt=0, le=100)] = 100,
+    skip: Annotated[int, Query(ge=0)] = 0,
     session: Session = Depends(get_session),
 ) -> list[Student]:
     
     statement = select(Student)
-
-    if id is not None:
-        # If id is provided, filter the student list
-        statement = statement.where(Student.id == id)
 
     if department is not None:
         # If department is provided, filter the student list
@@ -63,13 +63,9 @@ def get_students(
         # If age is provided, filter the student list
         statement = statement.where(Student.age == age) 
 
-    if skip is not None:
-        # If skip is provided, apply the skip to the student list
-        statement = statement.offset(skip)
+    statement = statement.offset(skip)
 
-    if limit is not None:
-        # If limit is provided, apply the limit to the student list
-        statement = statement.limit(limit)
+    statement = statement.limit(limit)
 
     # Execute the query and return the results
     filtered_students = session.exec(statement).all()
@@ -78,7 +74,7 @@ def get_students(
 
 
 # Endpoint to get a single student by id
-@app.get("/students/{student_id}", response_model=StudentRead)
+@app.get("/students/{student_id}", response_model=StudentPuplic)
 def get_student_by_id(
     student_id: Annotated[int, Path(title="Student ID")],
     session: Session = Depends(get_session),
@@ -97,7 +93,7 @@ def get_all_department() -> list[str]:
     return Department.__members__.keys()
 
 
-@app.post("/students/add", response_model=StudentRead)
+@app.post("/students/add", response_model=StudentPuplic)
 def add_student(
     student_data: StudentCreate,
     session: Session = Depends(get_session),
@@ -131,34 +127,29 @@ def add_student(
 
 
 # update student by id
-@app.put("/students/{student_id}", response_model=StudentRead)
+@app.patch("/students/{student_id}", response_model=StudentPuplic)
 def update_student(
     student_id: Annotated[int, Path(title="Student ID")],
-    student_data: StudentUpdate,
+    new_student: StudentUpdate,
     session: Session = Depends(get_session),
 ) -> Student:
 
-    student = session.get(Student, student_id)
-    if student is None:
+    student_db = session.get(Student, student_id)
+    if student_db is None:
         raise HTTPException(status_code=404, detail="student not found")
 
-    # Update the student's attributes
-    if student_data.name is not None:
-        student.name = student_data.name
-    if student_data.age is not None:
-        student.age = student_data.age
-    if student_data.department is not None:
-        student.department = student_data.department
+    student_data = new_student.model_dump(exclude_unset=True)
+    student_db.sqlmodel_update(student_data)
 
-    session.add(student)
+    session.add(student_db)
     session.commit()
-    session.refresh(student)
+    session.refresh(student_db)
 
-    return student
+    return student_db
 
 
 # delete student by id
-@app.delete("/students/{student_id}", response_model=dict[str, str | StudentRead])
+@app.delete("/students/{student_id}", response_model=dict[str, str | StudentPuplic])
 def delete_student(
     student_id: Annotated[int, Path(title="Student ID")],
     session: Session = Depends(get_session),
@@ -168,7 +159,7 @@ def delete_student(
     if student is None:
         raise HTTPException(status_code=404, detail="student not found")
 
-    # student_read = StudentRead(student=student)
+    # student_puplic = StudentPuplic(student=student)
 
     session.delete(student)
     session.commit()
@@ -180,7 +171,7 @@ def delete_student(
 
 
 # get all graduation projects
-@app.get("/GP", response_model=list[GPRead])
+@app.get("/GP", response_model=list[GPPuplic])
 def get_graduation_projects(
     session: Session = Depends(get_session),
 ) -> list[GP]:
@@ -191,10 +182,10 @@ def get_graduation_projects(
     return graduation_projects
 
 
-@app.put("/students/{student_id}/emails/add", response_model=EmailRead)
-def update_student_email(
+@app.put("/students/{student_id}/emails/add", response_model=EmailPuplic)
+def add_student_email(
     student_id: Annotated[int, Path(title="Student ID")],
-    email_data: EmailBase,
+    email_data: EmailCreate,
     session: Session = Depends(get_session),
 ) -> Email:
     
@@ -202,13 +193,16 @@ def update_student_email(
     if student is None:
         raise HTTPException(status_code=404, detail="student not found")
 
-    email = Email(
-        email=email_data.email,
-        password=email_data.password,
-        student_id=student.id,  # Associate the email with the student
-    )
+    # Hash the password before saving
+    plain_password = email_data.password
+    hashed_password = hash_password(plain_password)
+    print("plain_password: ", plain_password)
+    print("hashed_password: ", hashed_password)
+    extra_data = {"hashed_password": hashed_password}
 
+    email = Email.model_validate(email_data, update=extra_data)
     student.emails.append(email)
+
     # session.add(email)
     session.add(student)
     session.commit()
@@ -216,10 +210,31 @@ def update_student_email(
     return email
 
 
-@app.get("/emails", response_model=list[EmailRead])
+# Endpoint for logging in a student
+@app.post("/students/{student_id}/login")
+def student_login(
+    email_data: EmailCreate,
+    session: Session = Depends(get_session),
+) -> dict[str, str]:
+    
+    email_db = session.exec(select(Email).where(Email.email == email_data.email)).one()
+    if email_db is None:
+        raise HTTPException(status_code=404, detail="Email not found")
+    
+    if not verify_password(plain_password=email_data.password, hashed_password=email_db.hashed_password):
+        raise HTTPException(status_code=401, detail="Wrong password")
+    
+    student = session.get(Student, email_db.student_id)
+    if student is None:
+        raise HTTPException(status_code=404, detail="Email found but Student not found")
+
+    return {"message": "Login successful", "student": student.name}
+
+
+@app.get("/emails", response_model=list[EmailPuplic])
 def get_emails(
     session: Session = Depends(get_session),
-) -> list[EmailRead]:
+) -> list[EmailPuplic]:
     
     statement = select(Email)
     emails = session.exec(statement).all()
@@ -227,10 +242,10 @@ def get_emails(
     return emails
 
 
-@app.get("/subjects", response_model=list[SubjectRead])
+@app.get("/subjects", response_model=list[SubjectPuplic])
 def get_subjects(
     session: Session = Depends(get_session),
-) -> list[SubjectRead]:
+) -> list[SubjectPuplic]:
     
     statement = select(Subject)
     subjects = session.exec(statement).all()
@@ -238,16 +253,13 @@ def get_subjects(
     return subjects
 
 
-@app.post("/subjects/add", response_model=SubjectRead)
+@app.post("/subjects/add", response_model=SubjectPuplic)
 def add_subject(
     subject_data: SubjectCreate,
     session: Session = Depends(get_session),
 ) -> Subject:
     
-    subject = Subject(
-        name=subject_data.name,
-        hours=subject_data.hours,
-    )
+    subject = Subject.model_validate(subject_data)
 
     session.add(subject)
     session.commit()
@@ -256,7 +268,7 @@ def add_subject(
     return subject
 
 
-@app.put("/students/{student_id}/subjects/add/{subject_id}")
+@app.patch("/students/{student_id}/subjects/add/{subject_id}")
 def add_subject_to_student(
     student_id: Annotated[int, Path(title="Student ID")],
     subject_id: Annotated[int, Path(title="Subject ID")],
@@ -284,11 +296,11 @@ def add_subject_to_student(
     }
 
 
-@app.get("/students/{student_id}/subjects", response_model=list[SubjectRead])
+@app.get("/students/{student_id}/subjects", response_model=list[SubjectPuplic])
 def get_student_subjects(
     student_id: Annotated[int, Path(title="Student ID")],
     session: Session = Depends(get_session),
-) -> list[SubjectRead]:
+) -> list[SubjectPuplic]:
     
     student = session.get(Student, student_id)
     if student is None:

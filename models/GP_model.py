@@ -28,10 +28,10 @@ class GPCreate(GPBase):
     pass
 
 
-class GPRead(GPBase):
+class GPPuplic(GPBase):
     id: int
-    student_id: Optional[int] = None  # Student ID, can be None if not assigned
+    student_id: int
 
     class Config:
-        orm_mode = True  # Enable ORM mode for compatibility with SQLModel
+        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
 

@@ -42,11 +42,11 @@ class SubjectCreate(SubjectBase):
     pass
 
 
-# SQLModel model for Subject read
-class SubjectRead(SubjectBase):
+# SQLModel model for Subject Puplic
+class SubjectPuplic(SubjectBase):
     id: int
     # students: list['Student'] = []  # Students relationship, can be empty
 
     class Config:
-        orm_mode = True  # Enable ORM mode for compatibility with SQLModel
+        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
 
