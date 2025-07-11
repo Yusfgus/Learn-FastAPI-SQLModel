@@ -2,9 +2,9 @@ from enum import Enum
 from pydantic import BaseModel, field_validator
 from sqlmodel import Field, SQLModel, Relationship
 from typing import Optional
-from models.subject_model import Subject, StudentSubjectLink, SubjectBase, SubjectPuplic
-from models.GP_model import GP, GPBase, GPPuplic, GPCreate
-from models.email_model import Email, EmailPuplic
+from models.subject_model import Subject, StudentSubjectLink, SubjectPublic
+from models.GP_model import GP, GPPublic, GPCreate
+from models.email_model import Email, EmailPublic
 
 
 # Enum for allowed departement types
@@ -63,22 +63,40 @@ class StudentUpdate(SQLModel):
         return value.lower() if value else value
     
 
-# SQLModel model for Student Puplic
-class StudentPuplic(StudentBase):
+# SQLModel model for Student Public
+class StudentPublic(StudentBase):
     id: int
-    # subjects: list[SubjectPuplic] = []  # Subjects relationship, can be empty
-    graduation_project: GPPuplic | None = None  # Graduation project relationship, can be None
-    emails: list[EmailPuplic] = []  # Emails relationship, can be empty
 
     class Config:
         from_attributes = True  # Enable ORM mode for compatibility with SQLModel
 
-    def __init__(self, student: Student):
-        super().__init__(
-            name=student.name, 
-            age=student.age, 
-            department=student.department, 
-            id=student.id, 
-            graduation_project=student.graduation_project,
-            emails=student.emails,
-        )
+
+class StudentPublicWithGP(StudentPublic):
+    graduation_project: GPPublic | None = None  # Graduation project relationship, can be None
+
+    class Config:
+        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
+
+
+class StudentPublicWithEmails(StudentPublic):
+    emails: list[EmailPublic] = []  # Emails relationship, can be empty
+
+    class Config:
+        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
+
+
+class StudentPublicWithSubjects(StudentPublic):
+    subjects: list[SubjectPublic] = []  # Subjects relationship, can be empty
+
+    class Config:
+        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
+
+
+class StudentPublicWithAll(StudentPublicWithGP, StudentPublicWithEmails, StudentPublicWithSubjects):
+    """
+    This model combines all public details of a student including graduation project,
+    emails, and subjects.
+    """
+
+    class Config:
+        from_attributes = True  # Enable ORM mode for compatibility with SQLModel

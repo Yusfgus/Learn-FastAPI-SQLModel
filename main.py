@@ -1,11 +1,13 @@
 from fastapi import FastAPI, HTTPException, Query, Path, Depends
 from typing import Annotated
-from models.student_model import Student, StudentCreate, StudentUpdate, StudentPuplic, Department
-from models.GP_model import GP, GPCreate, GPPuplic
-from models.email_model import Email, EmailBase, EmailCreate, EmailPuplic, EmailUpdate, hash_password, verify_password
-from models.subject_model import Subject, SubjectCreate, SubjectPuplic
+from models.models import *
+# from models.GP_model import GP, GPCreate, GPPublicWithAll, GPPublic
+# from models.email_model import Email, EmailBase, EmailCreate, EmailPublic, EmailPublicWithAll, EmailUpdate, hash_password, verify_password
+# from models.subject_model import Subject, SubjectCreate, SubjectPublicWithAll, SubjectPublic
+# from models.student_model import Student, StudentCreate, StudentPublicWithEmails, StudentPublicWithGP, StudentUpdate, StudentPublic, Department, StudentPublicWithAll
 from db import init_db, get_session, drop_table
 from sqlmodel import Session, select
+from HelperFunctions import hash_password, verify_password
 
 
 # Initialize the database
@@ -44,7 +46,7 @@ def add_50(num: int) -> int:
 
 
 # Endpoint to get all students or filter by department or age or id
-@app.get("/students", response_model=list[StudentPuplic])
+@app.get("/students", response_model=list[StudentPublic])
 def get_students(
     department: Department | None = None,
     age: Annotated[int | None, Query(gt=0, le=100)] = None,
@@ -74,7 +76,7 @@ def get_students(
 
 
 # Endpoint to get a single student by id
-@app.get("/students/{student_id}", response_model=StudentPuplic)
+@app.get("/students/{student_id}", response_model=StudentPublicWithAll)
 def get_student_by_id(
     student_id: Annotated[int, Path(title="Student ID")],
     session: Session = Depends(get_session),
@@ -93,7 +95,7 @@ def get_all_department() -> list[str]:
     return Department.__members__.keys()
 
 
-@app.post("/students/add", response_model=StudentPuplic)
+@app.post("/students/add", response_model=StudentPublicWithGP)
 def add_student(
     student_data: StudentCreate,
     session: Session = Depends(get_session),
@@ -127,7 +129,7 @@ def add_student(
 
 
 # update student by id
-@app.patch("/students/{student_id}", response_model=StudentPuplic)
+@app.patch("/students/{student_id}", response_model=StudentPublic)
 def update_student(
     student_id: Annotated[int, Path(title="Student ID")],
     new_student: StudentUpdate,
@@ -149,7 +151,7 @@ def update_student(
 
 
 # delete student by id
-@app.delete("/students/{student_id}", response_model=dict[str, str | StudentPuplic])
+@app.delete("/students/{student_id}", response_model=dict[str, str | StudentPublicWithEmails])
 def delete_student(
     student_id: Annotated[int, Path(title="Student ID")],
     session: Session = Depends(get_session),
@@ -159,7 +161,7 @@ def delete_student(
     if student is None:
         raise HTTPException(status_code=404, detail="student not found")
 
-    # student_puplic = StudentPuplic(student=student)
+    # student_Public = StudentPublic(student=student)
 
     session.delete(student)
     session.commit()
@@ -171,7 +173,7 @@ def delete_student(
 
 
 # get all graduation projects
-@app.get("/GP", response_model=list[GPPuplic])
+@app.get("/GP", response_model=list[GPPublic])
 def get_graduation_projects(
     session: Session = Depends(get_session),
 ) -> list[GP]:
@@ -182,7 +184,21 @@ def get_graduation_projects(
     return graduation_projects
 
 
-@app.put("/students/{student_id}/emails/add", response_model=EmailPuplic)
+# get graduation project by id
+@app.get("/GP/{gp_id}", response_model=GPPublicWithAll)
+def get_graduation_project_by_id(
+    gp_id: Annotated[int, Path(title="Graduation Project ID")],
+    session: Session = Depends(get_session),
+) -> GP:
+    
+    graduation_project = session.get(GP, gp_id)
+    if graduation_project is None:
+        raise HTTPException(status_code=404, detail="Graduation project not found")
+
+    return graduation_project
+
+
+@app.put("/students/{student_id}/emails/add", response_model=EmailPublicWithAll)
 def add_student_email(
     student_id: Annotated[int, Path(title="Student ID")],
     email_data: EmailCreate,
@@ -196,8 +212,6 @@ def add_student_email(
     # Hash the password before saving
     plain_password = email_data.password
     hashed_password = hash_password(plain_password)
-    print("plain_password: ", plain_password)
-    print("hashed_password: ", hashed_password)
     extra_data = {"hashed_password": hashed_password}
 
     email = Email.model_validate(email_data, update=extra_data)
@@ -217,7 +231,7 @@ def student_login(
     session: Session = Depends(get_session),
 ) -> dict[str, str]:
     
-    email_db = session.exec(select(Email).where(Email.email == email_data.email)).one()
+    email_db = session.exec(select(Email).where(Email.email == email_data.email)).first()
     if email_db is None:
         raise HTTPException(status_code=404, detail="Email not found")
     
@@ -231,10 +245,10 @@ def student_login(
     return {"message": "Login successful", "student": student.name}
 
 
-@app.get("/emails", response_model=list[EmailPuplic])
+@app.get("/emails", response_model=list[EmailPublic])
 def get_emails(
     session: Session = Depends(get_session),
-) -> list[EmailPuplic]:
+) -> list[Email]:
     
     statement = select(Email)
     emails = session.exec(statement).all()
@@ -242,10 +256,23 @@ def get_emails(
     return emails
 
 
-@app.get("/subjects", response_model=list[SubjectPuplic])
+@app.get("/emails/{email_id}", response_model=EmailPublicWithAll)
+def get_email_by_id(
+    email_id: Annotated[int, Path(title="Email ID")],
+    session: Session = Depends(get_session),
+) -> Email:
+    
+    email = session.get(Email, email_id)
+    if email is None:
+        raise HTTPException(status_code=404, detail="Email not found")
+
+    return email
+
+
+@app.get("/subjects", response_model=list[SubjectPublic])
 def get_subjects(
     session: Session = Depends(get_session),
-) -> list[SubjectPuplic]:
+) -> list[SubjectPublic]:
     
     statement = select(Subject)
     subjects = session.exec(statement).all()
@@ -253,7 +280,20 @@ def get_subjects(
     return subjects
 
 
-@app.post("/subjects/add", response_model=SubjectPuplic)
+@app.get("/subjects/{subject_id}", response_model=SubjectPublicWithAll)
+def get_subject_by_id(
+    subject_id: Annotated[int, Path(title="Subject ID")],
+    session: Session = Depends(get_session),
+) -> Subject:
+    
+    subject = session.get(Subject, subject_id)
+    if subject is None:
+        raise HTTPException(status_code=404, detail="Subject not found")
+
+    return subject
+
+
+@app.post("/subjects/add", response_model=SubjectPublicWithAll)
 def add_subject(
     subject_data: SubjectCreate,
     session: Session = Depends(get_session),
@@ -296,11 +336,11 @@ def add_subject_to_student(
     }
 
 
-@app.get("/students/{student_id}/subjects", response_model=list[SubjectPuplic])
+@app.get("/students/{student_id}/subjects", response_model=list[SubjectPublic])
 def get_student_subjects(
     student_id: Annotated[int, Path(title="Student ID")],
     session: Session = Depends(get_session),
-) -> list[SubjectPuplic]:
+) -> list[Subject]:
     
     student = session.get(Student, student_id)
     if student is None:

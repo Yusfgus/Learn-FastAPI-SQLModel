@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from models.student_model import Student  # Import only for type checking to avoid circular imports
+    from models.student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
 
 
 # SQLModel model for StudentSubjectLink, representing the many-to-many relationship between Student and Subject
@@ -42,11 +42,22 @@ class SubjectCreate(SubjectBase):
     pass
 
 
-# SQLModel model for Subject Puplic
-class SubjectPuplic(SubjectBase):
+# SQLModel model for Subject Public
+class SubjectPublic(SubjectBase):
     id: int
-    # students: list['Student'] = []  # Students relationship, can be empty
 
     class Config:
         from_attributes = True  # Enable ORM mode for compatibility with SQLModel
 
+
+class SubjectPublicWithStudents(SubjectPublic):
+    students: list['StudentPublic'] = []  # Students relationship, can be empty
+
+    class Config:
+        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
+
+
+class SubjectPublicWithAll(SubjectPublicWithStudents):
+    
+    class Config:
+        from_attributes = True  # Enable ORM mode for compatibility with SQLModel

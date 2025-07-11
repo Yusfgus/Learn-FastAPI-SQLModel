@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from models.student_model import Student  # Import only for type checking to avoid circular imports
+    from models.student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
 
 
 class EmailBase(SQLModel):
@@ -23,11 +23,24 @@ class Email(EmailBase, table=True):
     student: Optional["Student"] = Relationship(back_populates='emails')
 
 
-# SQLModel model for Email Puplic
-class EmailPuplic(EmailBase):
+# SQLModel model for Email Public
+class EmailPublic(EmailBase):
     id: int
     student_id: int
     hashed_password: str
+
+    class Config:
+        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
+
+
+class EmailPublicWithStudent(EmailPublic):
+    student: Optional["StudentPublic"] = None  # Student relationship, can be None
+
+    class Config:
+        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
+
+
+class EmailPublicWithAll(EmailPublicWithStudent):
 
     class Config:
         from_attributes = True  # Enable ORM mode for compatibility with SQLModel
@@ -37,23 +50,22 @@ class EmailPuplic(EmailBase):
 class EmailCreate(EmailBase):
     password: str
 
+
+class EmailLogin(SQLModel):
+    email: str
+    password: str
+
+
 # SQLModel model for Email update
 class EmailUpdate(SQLModel):    
     email: str | None = None
     password: str | None = None
 
-    class Config:
-        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
 
 
+# # Lazy runtime import to avoid circular import
+# from models.student_model import StudentPublic
 
-from passlib.context import CryptContext
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def hash_password(password: str) -> str:
-    """Hash a password using a secure hashing algorithm."""
-    return pwd_context.hash(password)
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against a hashed password."""
-    return pwd_context.verify(plain_password, hashed_password)
+# # Now that StudentPublic is defined, rebuild the models
+# EmailPublicWithStudent.model_rebuild()
+# EmailPublicWithAll.model_rebuild()
