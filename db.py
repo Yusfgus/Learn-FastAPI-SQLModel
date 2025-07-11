@@ -1,8 +1,5 @@
 from sqlmodel import create_engine, SQLModel, Session
 
-from models import Email
-
-
 # Database URL
 DATABASE_URL = "sqlite:///./students.db"
 

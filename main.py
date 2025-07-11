@@ -1,6 +1,9 @@
 from fastapi import FastAPI, HTTPException, Query, Path, Depends
 from typing import Annotated
-from models import *  # Ensure StudentUpdate is defined in models.py or import it directly
+from models.student_model import Student, StudentCreate, StudentUpdate, StudentRead, Department
+from models.GP_model import GP, GPCreate, GPRead
+from models.email_model import Email, EmailBase, EmailRead
+from models.subject_model import Subject, SubjectCreate, SubjectRead
 from db import init_db, get_session, drop_table
 from sqlmodel import Session, select
 
@@ -9,8 +12,8 @@ from sqlmodel import Session, select
 if __name__ == "__main__":
     print("run main.py")
     # Initialize the database when running this script directly
-    drop_table(table=Email)
-    init_db()
+    # drop_table(table=Email)
+    # init_db()
 
 
 # # Create FastAPI app instance
@@ -88,10 +91,10 @@ def get_student_by_id(
     return student
 
 
-# # Endpoint to get students by department type
-# @app.get("/departments")
-# def get_all_department() -> list[str]:
-#     return Department.__members__.keys()
+# Endpoint to get students by department type
+@app.get("/departments")
+def get_all_department() -> list[str]:
+    return Department.__members__.keys()
 
 
 @app.post("/students/add", response_model=StudentRead)
@@ -223,5 +226,74 @@ def get_emails(
 
     return emails
 
+
+@app.get("/subjects", response_model=list[SubjectRead])
+def get_subjects(
+    session: Session = Depends(get_session),
+) -> list[SubjectRead]:
+    
+    statement = select(Subject)
+    subjects = session.exec(statement).all()
+
+    return subjects
+
+
+@app.post("/subjects/add", response_model=SubjectRead)
+def add_subject(
+    subject_data: SubjectCreate,
+    session: Session = Depends(get_session),
+) -> Subject:
+    
+    subject = Subject(
+        name=subject_data.name,
+        hours=subject_data.hours,
+    )
+
+    session.add(subject)
+    session.commit()
+    session.refresh(subject)
+
+    return subject
+
+
+@app.put("/students/{student_id}/subjects/add/{subject_id}")
+def add_subject_to_student(
+    student_id: Annotated[int, Path(title="Student ID")],
+    subject_id: Annotated[int, Path(title="Subject ID")],
+    session: Session = Depends(get_session),
+) -> dict:
+    
+    student = session.get(Student, student_id)
+    if student is None:
+        raise HTTPException(status_code=404, detail="student not found")
+
+    subject = session.get(Subject, subject_id)
+    if subject is None:
+        raise HTTPException(status_code=404, detail="subject not found")
+
+    # Check if the subject is already added to the student
+    if subject in student.subjects:
+        raise HTTPException(status_code=400, detail="Subject already added to student")
+    
+    student.subjects.append(subject)
+    session.add(student)
+    session.commit()
+
+    return {
+        "message": f"Subject \'{subject.name}\' added to student \'{student.name}\' successfully"
+    }
+
+
+@app.get("/students/{student_id}/subjects", response_model=list[SubjectRead])
+def get_student_subjects(
+    student_id: Annotated[int, Path(title="Student ID")],
+    session: Session = Depends(get_session),
+) -> list[SubjectRead]:
+    
+    student = session.get(Student, student_id)
+    if student is None:
+        raise HTTPException(status_code=404, detail="student not found")
+
+    return student.subjects
 
 print("============= Every thing's good ================")
