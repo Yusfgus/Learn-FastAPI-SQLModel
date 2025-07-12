@@ -1,12 +1,16 @@
 from sqlmodel import create_engine, SQLModel, Session
 
-# Database URL
-sqlite_url = "sqlite:///./students.db"
-
-
+# sqlite_url = "sqlite:///./students.db"
 # Create the database engine
-connect_args = {"check_same_thread": False} # make sure we don't share the same session in more than one request
-engine = create_engine(sqlite_url, echo=True, connect_args=connect_args) # remove echo=True in production
+# connect_args = {"check_same_thread": False} # make sure we don't share the same session in more than one request
+# engine = create_engine(sqlite_url, echo=True, connect_args=connect_args) # remove echo=True in production
+
+
+#  DATABASE_URL = "mysql+pymysql://<username>:<password>@<host>/<database>"
+DATABASE_URL = "mysql+pymysql://root:manga123@localhost/college"
+engine = create_engine(DATABASE_URL, echo=True) # remove echo=True in production
+
+
 
 
 # Function to create the database tables

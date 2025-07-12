@@ -19,7 +19,7 @@ class Email(EmailBase, table=True):
     hashed_password: str = Field()  # Hashed password
 
     # One-to-one relationship to Student
-    student_id: int | None = Field(default=None, foreign_key='StudentTable.id', ondelete="CASCADE")
+    student_id: int | None = Field(default=None, foreign_key='StudentTable.id', unique=True, ondelete="CASCADE")
     student: Optional["Student"] = Relationship(back_populates='emails')
 
 

@@ -15,7 +15,7 @@ if __name__ == "__main__":
     print("run main.py")
     # Initialize the database when running this script directly
     # drop_table(table=Email)
-    # init_db()
+    init_db()
 
 
 # # Create FastAPI app instance
@@ -45,13 +45,16 @@ def add_50(num: int) -> int:
     return num + 50
 
 
+def common_parameters(q: str | None = None, skip: Annotated[int, Query(ge=0)] = 0, limit: Annotated[int, Query(gt=0, le=100)] = 100):
+    return {"q": q, "skip": skip, "limit": limit}
+
+
 # Endpoint to get all students or filter by department or age or id
 @app.get("/students", response_model=list[StudentPublic])
 def get_students(
+    commons: Annotated[dict, Depends(common_parameters)],
     department: Department | None = None,
     age: Annotated[int | None, Query(gt=0, le=100)] = None,
-    limit: Annotated[int, Query(gt=0, le=100)] = 100,
-    skip: Annotated[int, Query(ge=0)] = 0,
     session: Session = Depends(get_session),
 ) -> list[Student]:
     
@@ -65,9 +68,9 @@ def get_students(
         # If age is provided, filter the student list
         statement = statement.where(Student.age == age) 
 
-    statement = statement.offset(skip)
+    statement = statement.offset(commons['skip'])
 
-    statement = statement.limit(limit)
+    statement = statement.limit(commons['limit'])
 
     # Execute the query and return the results
     filtered_students = session.exec(statement).all()
@@ -89,10 +92,10 @@ def get_student_by_id(
     return student
 
 
-# Endpoint to get students by department type
-@app.get("/departments")
-def get_all_department() -> list[str]:
-    return Department.__members__.keys()
+# # Endpoint to get students by department type
+# @app.get("/departments")
+# def get_all_department() -> list[str]:
+#     return Department.__members__.keys()
 
 
 @app.post("/students/add", response_model=StudentPublicWithGP)

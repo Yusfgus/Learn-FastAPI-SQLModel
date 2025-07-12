@@ -8,8 +8,8 @@ from typing import Optional
 class StudentSubjectLink(SQLModel, table=True):
     __tablename__ = 'StudentSubjectLink'  # Table name for SQLModel
 
-    student_id: int | None = Field(default=None, foreign_key='StudentTable.id', primary_key=True)
-    subject_id: int | None = Field(default=None, foreign_key='SubjectTable.id', primary_key=True)
+    student_id: int = Field(foreign_key='StudentTable.id', primary_key=True)
+    subject_id: int = Field(foreign_key='SubjectTable.id', primary_key=True)
 
     # grade : float | None = None
 
@@ -92,7 +92,7 @@ class GPCreate(GPBase):
 
 class GPPublic(GPBase):
     id: int
-    student_id: int
+    student_id: int | None
 
     class Config:
         from_attributes = True  # Enable ORM mode for compatibility with SQLModel
@@ -194,11 +194,19 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 # Enum for allowed departement types
-class Department(Enum):
-    CS = 'cs'  # Computer Science
-    IS = 'is'  # Information Systems
-    SC = 'sc'  # Sientific Computing
-    CSys = 'csys'  # Computer Systems
+class Department(str, Enum):
+    cs = 'cs'  # Computer Science
+    # is = 'is'  # Information Systems
+    sc = 'sc'  # Sientific Computing
+    csys = 'csys'  # Computer Systems
+
+    @classmethod
+    def _missing_(cls, value):
+        value = value.lower()
+        for member in cls:
+            if member.lower() == value:
+                return member
+        return None
 
 
 # SQLModel model for Student base

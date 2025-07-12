@@ -8,11 +8,19 @@ from models.email_model import Email, EmailPublic
 
 
 # Enum for allowed departement types
-class Department(Enum):
-    CS = 'cs'  # Computer Science
-    IS = 'is'  # Information Systems
-    SC = 'sc'  # Sientific Computing
-    CSys = 'csys'  # Computer Systems
+class Department(str, Enum):
+    cs = 'cs'  # Computer Science
+    # is = 'is'  # Information Systems
+    sc = 'sc'  # Sientific Computing
+    csys = 'csys'  # Computer Systems
+
+    @classmethod
+    def _missing_(cls, value):
+        value = value.lower()
+        for member in cls:
+            if member.lower() == value:
+                return member
+        return None
 
 
 # SQLModel model for Student base
