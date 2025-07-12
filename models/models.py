@@ -230,7 +230,7 @@ class Student(StudentBase, table=True):
     graduation_project: GP | None = Relationship(back_populates='student')
 
     # Many-to-one relationship to Email
-    emails: list[Email] = Relationship(back_populates='student', cascade_delete=True)
+    emails: list[Email] = Relationship(back_populates='student', passive_deletes="all")
 
 
 

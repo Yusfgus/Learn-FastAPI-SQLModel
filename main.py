@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query, Path, Depends
+from fastapi import Body, FastAPI, HTTPException, Query, Path, Depends
 from typing import Annotated
 from models.models import *
 # from models.GP_model import GP, GPCreate, GPPublicWithAll, GPPublic
@@ -45,14 +45,21 @@ def add_50(num: int) -> int:
     return num + 50
 
 
-def common_parameters(q: str | None = None, skip: Annotated[int, Query(ge=0)] = 0, limit: Annotated[int, Query(gt=0, le=100)] = 100):
-    return {"q": q, "skip": skip, "limit": limit}
+class CommonQueryParams:
+    def __init__(
+            self, q: str | None = None, 
+            skip: Annotated[int, Field(ge=0)] = 0, 
+            limit: Annotated[int, Field(gt=0, le=100)] = 100
+    ):
+        self.q = q
+        self.skip = skip
+        self.limit = limit
 
 
 # Endpoint to get all students or filter by department or age or id
 @app.get("/students", response_model=list[StudentPublic])
 def get_students(
-    commons: Annotated[dict, Depends(common_parameters)],
+    commons: Annotated[CommonQueryParams, Depends(CommonQueryParams)],
     department: Department | None = None,
     age: Annotated[int | None, Query(gt=0, le=100)] = None,
     session: Session = Depends(get_session),
@@ -68,9 +75,9 @@ def get_students(
         # If age is provided, filter the student list
         statement = statement.where(Student.age == age) 
 
-    statement = statement.offset(commons['skip'])
+    statement = statement.offset(commons.skip)
 
-    statement = statement.limit(commons['limit'])
+    statement = statement.limit(commons.limit)
 
     # Execute the query and return the results
     filtered_students = session.exec(statement).all()
@@ -154,7 +161,7 @@ def update_student(
 
 
 # delete student by id
-@app.delete("/students/{student_id}", response_model=dict[str, str | StudentPublicWithEmails])
+@app.delete("/students/{student_id}", response_model=dict[str, str | StudentPublic])
 def delete_student(
     student_id: Annotated[int, Path(title="Student ID")],
     session: Session = Depends(get_session),
@@ -178,10 +185,11 @@ def delete_student(
 # get all graduation projects
 @app.get("/GP", response_model=list[GPPublic])
 def get_graduation_projects(
+    commons: Annotated[CommonQueryParams, Depends(CommonQueryParams)],
     session: Session = Depends(get_session),
 ) -> list[GP]:
     
-    statement = select(GP)
+    statement = select(GP).offset(commons.skip).limit(commons.limit)
     graduation_projects = session.exec(statement).all()
 
     return graduation_projects
@@ -250,10 +258,11 @@ def student_login(
 
 @app.get("/emails", response_model=list[EmailPublic])
 def get_emails(
+    commons: Annotated[CommonQueryParams, Depends(CommonQueryParams)],
     session: Session = Depends(get_session),
 ) -> list[Email]:
     
-    statement = select(Email)
+    statement = select(Email).offset(commons.skip).limit(commons.limit)
     emails = session.exec(statement).all()
 
     return emails
@@ -274,10 +283,11 @@ def get_email_by_id(
 
 @app.get("/subjects", response_model=list[SubjectPublic])
 def get_subjects(
+    commons: Annotated[CommonQueryParams, Depends(CommonQueryParams)],
     session: Session = Depends(get_session),
 ) -> list[SubjectPublic]:
     
-    statement = select(Subject)
+    statement = select(Subject).offset(commons.skip).limit(commons.limit)
     subjects = session.exec(statement).all()
 
     return subjects
@@ -311,10 +321,10 @@ def add_subject(
     return subject
 
 
-@app.patch("/students/{student_id}/subjects/add/{subject_id}")
+@app.patch("/students_subjects")
 def add_subject_to_student(
-    student_id: Annotated[int, Path(title="Student ID")],
-    subject_id: Annotated[int, Path(title="Subject ID")],
+    student_id: Annotated[int, Body(title="Student ID")],
+    subject_id: Annotated[int, Body(title="Subject ID")],
     session: Session = Depends(get_session),
 ) -> dict:
     
