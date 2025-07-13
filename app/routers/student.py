@@ -1,11 +1,14 @@
 from typing import Annotated
 from fastapi import Body, Depends, Path, Query, APIRouter, HTTPException
 from sqlmodel import Session, select
+
 from ..HelperFunctions import hash_password, verify_password
-from ..models.all_models import Email, EmailCreate, EmailPublicWithAll, Subject, SubjectPublic
 from ..db import get_session
 from ..dependencies import CommonQueryParams
-from ..models.all_models import GP, Department, Student, StudentCreate, StudentPublic, StudentPublicWithAll, StudentPublicWithGP, StudentUpdate
+from ..models.student_model import Department, Student, StudentCreate, StudentPublic, StudentPublicWithAll, StudentPublicWithGP, StudentUpdate
+from ..models.subject_model import Subject, SubjectPublic
+from ..models.email_model import Email, EmailCreate, EmailPublicWithAll
+from ..models.GP_model import GP
 
 
 router = APIRouter(

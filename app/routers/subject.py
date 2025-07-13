@@ -1,9 +1,10 @@
 from typing import Annotated
 from fastapi import Depends, APIRouter, HTTPException, Path
 from sqlmodel import Session, select
+
 from ..db import get_session
 from ..dependencies import CommonQueryParams
-from ..models.all_models import Subject, SubjectCreate, SubjectPublic, SubjectPublicWithAll
+from ..models.subject_model import Subject, SubjectCreate, SubjectPublic, SubjectPublicWithAll
 
 
 router = APIRouter(

@@ -2,9 +2,10 @@ from enum import Enum
 from pydantic import BaseModel, field_validator
 from sqlmodel import Field, SQLModel, Relationship
 from typing import Optional
-from models.subject_model import Subject, StudentSubjectLink, SubjectPublic
-from models.GP_model import GP, GPPublic, GPCreate
-from models.email_model import Email, EmailPublic
+
+from .subject_model import Subject, StudentSubjectLink, SubjectPublic
+from .GP_model import GP, GPPublic, GPCreate
+from .email_model import Email, EmailPublic
 
 
 # Enum for allowed departement types
@@ -44,7 +45,7 @@ class Student(StudentBase, table=True):
     graduation_project: GP | None = Relationship(back_populates='student')
 
     # Many-to-one relationship to Email
-    emails: list[Email] = Relationship(back_populates='student', cascade_delete=True)
+    emails: list[Email] = Relationship(back_populates='student', passive_deletes="all")
 
 
 
@@ -108,3 +109,4 @@ class StudentPublicWithAll(StudentPublicWithGP, StudentPublicWithEmails, Student
 
     class Config:
         from_attributes = True  # Enable ORM mode for compatibility with SQLModel
+

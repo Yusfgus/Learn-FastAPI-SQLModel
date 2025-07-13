@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from models.student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
+    from .student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
 
 
 class EmailBase(SQLModel):
@@ -19,7 +19,7 @@ class Email(EmailBase, table=True):
     hashed_password: str = Field()  # Hashed password
 
     # One-to-one relationship to Student
-    student_id: int | None = Field(default=None, foreign_key='StudentTable.id', unique=True, ondelete="CASCADE")
+    student_id: int | None = Field(default=None, foreign_key='StudentTable.id', ondelete="CASCADE")
     student: Optional["Student"] = Relationship(back_populates='emails')
 
 
@@ -62,10 +62,12 @@ class EmailUpdate(SQLModel):
     password: str | None = None
 
 
+def rebuld_models():
+    # Lazy runtime import to avoid circular import
+    from .student_model import StudentPublic
 
-# # Lazy runtime import to avoid circular import
-# from models.student_model import StudentPublic
+    # Now that StudentPublic is defined, rebuild the models
+    EmailPublicWithStudent.model_rebuild()
+    EmailPublicWithAll.model_rebuild()
 
-# # Now that StudentPublic is defined, rebuild the models
-# EmailPublicWithStudent.model_rebuild()
-# EmailPublicWithAll.model_rebuild()
+    print("Email models rebuld successfully")

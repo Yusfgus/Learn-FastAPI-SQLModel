@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from .models.all_models import *
 from .db import init_db
 from .routers import student, subject, email, GP
+from .HelperFunctions import rebuld_models
 
 
 # Initialize the database
@@ -20,9 +20,10 @@ app.include_router(email.router)
 app.include_router(GP.router)
 
 
-# @app.on_event("startup")
-# def on_startup():
-#     print("Starting up the FastAPI application...")
+@app.on_event("startup")
+def on_startup():
+    print("Starting up the FastAPI application...")
+    rebuld_models()
 
 
 # Root endpoint

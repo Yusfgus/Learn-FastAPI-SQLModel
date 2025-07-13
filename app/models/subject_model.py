@@ -3,15 +3,15 @@ from typing import Optional, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from models.student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
+    from .student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
 
 
 # SQLModel model for StudentSubjectLink, representing the many-to-many relationship between Student and Subject
 class StudentSubjectLink(SQLModel, table=True):
     __tablename__ = 'StudentSubjectLink'  # Table name for SQLModel
 
-    student_id: int | None = Field(default=None, foreign_key='StudentTable.id', primary_key=True)
-    subject_id: int | None = Field(default=None, foreign_key='SubjectTable.id', primary_key=True)
+    student_id: int = Field(foreign_key='StudentTable.id', primary_key=True)
+    subject_id: int = Field(foreign_key='SubjectTable.id', primary_key=True)
 
     # grade : float | None = None
 
@@ -61,3 +61,14 @@ class SubjectPublicWithAll(SubjectPublicWithStudents):
     
     class Config:
         from_attributes = True  # Enable ORM mode for compatibility with SQLModel
+
+
+def rebuld_models():
+    # Lazy runtime import to avoid circular import
+    from .student_model import StudentPublic
+
+    # Now that StudentPublic is defined, rebuild the models
+    SubjectPublicWithStudents.model_rebuild()
+    SubjectPublicWithAll.model_rebuild()
+
+    print("Subject models rebuld successfully")
