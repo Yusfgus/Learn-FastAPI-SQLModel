@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 
-from app.models import student_model, subject_model, GP_model, email_model
+from app.schemas import student_schema, subject_schema, GP_schema, email_schema
 
-subject_model.rebuild_models()
-GP_model.rebuild_models()
-email_model.rebuild_models()
+subject_schema.rebuild_models()
+GP_schema.rebuild_models()
+email_schema.rebuild_models()
 
-from app.db import init_db
-from app.routers import student, subject, email, GP, auth
+from app.core.database import init_db
+from app.routers import GP_router, email_router, student_router, auth, subject_router
 
 
 
@@ -21,10 +21,10 @@ if __name__ == "__main__":
 
 # # Create FastAPI app instance
 app = FastAPI()
-app.include_router(student.router)
-app.include_router(subject.router)
-app.include_router(email.router)
-app.include_router(GP.router)
+app.include_router(student_router.router)
+app.include_router(subject_router.router)
+app.include_router(email_router.router)
+app.include_router(GP_router.router)
 app.include_router(auth.router)
 
 

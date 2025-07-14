@@ -1,13 +1,15 @@
 from sqlmodel import Field, SQLModel, Relationship
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
+
+from app.schemas.subject_schema import SubjectBase
 
 
 if TYPE_CHECKING:
-    from app.models.student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
+    from app.models.student_model import Student  # Import only for type checking to avoid circular imports
 
 
 # SQLModel model for StudentSubjectLink, representing the many-to-many relationship between Student and Subject
-class StudentSubjectLink(SQLModel, table=True):
+class StudentSubjectLink(SubjectBase, SQLModel, table=True):
     __tablename__ = 'StudentSubjectLink'  # Table name for SQLModel
 
     student_id: int = Field(foreign_key='StudentTable.id', primary_key=True)
@@ -20,14 +22,8 @@ class StudentSubjectLink(SQLModel, table=True):
     # subject: Optional['Subject'] = Relationship(back_populates='student_link')
 
 
-# SQLModel model for Subject base
-class SubjectBase(SQLModel):
-    name: str
-    hours: int
-
-
 # SQLModel model for Subject
-class Subject(SubjectBase, table=True):
+class Subject(SubjectBase, SQLModel, table=True):
     __tablename__ = 'SubjectTable'  # Table name for SQLModel
     
     id: int = Field(default=None, primary_key=True)  # Subject ID, primary key
@@ -35,40 +31,3 @@ class Subject(SubjectBase, table=True):
     # # Many-to-many relationship to Student
     students: list['Student'] = Relationship(back_populates='subjects', link_model=StudentSubjectLink)
     # student_link: list['StudentSubjectLink'] = Relationship(back_populates='subject')
-
-
-# SQLModel model for Subject create
-class SubjectCreate(SubjectBase):
-    model_config = {"extra": "forbid"}
-
-
-# SQLModel model for Subject Public
-class SubjectPublic(SubjectBase):
-    id: int
-
-    class Config:
-        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
-
-
-class SubjectPublicWithStudents(SubjectPublic):
-    students: list['StudentPublic'] = []  # Students relationship, can be empty
-
-    class Config:
-        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
-
-
-class SubjectPublicWithAll(SubjectPublicWithStudents):
-    
-    class Config:
-        from_attributes = True  # Enable ORM mode for compatibility with SQLModel
-
-
-def rebuild_models():
-    # Lazy runtime import to avoid circular import
-    from .student_model import StudentPublic
-
-    # Now that StudentPublic is defined, rebuild the models
-    SubjectPublicWithStudents.model_rebuild()
-    SubjectPublicWithAll.model_rebuild()
-
-    print("Subject models rebuild successfully")

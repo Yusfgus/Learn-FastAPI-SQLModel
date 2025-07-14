@@ -6,8 +6,8 @@ from sqlmodel import select
 from pydantic import BaseModel
 
 from app.models.email_model import Email
-from app.db import db_dependency
-from app.security import verify_password, create_access_token, decode_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.core.dependencies import db_dependency
+from app.core.security import verify_password, create_access_token, decode_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 
 
 router = APIRouter(
@@ -44,12 +44,15 @@ def authenticate_user(session: db_dependency, email: str, password: str):
     return email_db
 
 
-@router.post("/token")
+@router.post("/token", response_model=Token)
 async def login_for_access_token(
     session: db_dependency,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    # form_email: Annotated[str, Form()],
+    # form_pass: Annotated[str, Form()],
 ) -> Token:
     email = authenticate_user(session, form_data.username, form_data.password)
+    # email = authenticate_user(session, form_email, form_pass)
     if not email:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -83,12 +86,10 @@ def get_current_email(
     
     payload = decode_access_token(token=token)
     if not payload:
-        print("here 1")
         raise credentials_exception
 
     email = payload.get("sub")
     if email is None:
-        print("here 2")
         raise credentials_exception
     
     # token_data = TokenData(email=email)
@@ -96,7 +97,6 @@ def get_current_email(
 
     email_db = get_email(session=session, email=email)
     if email_db is None:
-        print("here 3")
         raise credentials_exception
     
     return email_db

@@ -1,12 +1,15 @@
 from typing import Annotated
 from fastapi import Depends, Path, APIRouter, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import select
 
-from app.db import db_dependency
-from app.dependencies import CommonQueryParams
-from app.models.GP_model import GP, GPPublic, GPPublicWithAll
+from app.core.dependencies import CommonQueryParams, db_dependency
+
+from app.models.GP_model import GP
 from app.models.email_model import Email
+
 from app.routers.auth import get_current_email
+
+from app.schemas.GP_schema import GPPublic, GPPublicWithAll
 
 
 router = APIRouter(

@@ -1,10 +1,13 @@
 from typing import Annotated
 from fastapi import Depends, Path, APIRouter, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import select
 
-from app.db import db_dependency
-from app.dependencies import CommonQueryParams
-from app.models.email_model import Email, EmailPublic, EmailPublicWithAll
+from app.core.dependencies import CommonQueryParams, db_dependency
+
+from app.models.email_model import Email
+
+from app.schemas.email_schema import EmailPublic, EmailPublicWithAll
+
 from app.routers.auth import get_current_email
 
 

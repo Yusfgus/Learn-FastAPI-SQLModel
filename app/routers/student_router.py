@@ -1,15 +1,19 @@
 from typing import Annotated
 from fastapi import Body, Depends, Path, Query, APIRouter, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import select
 
+from app.core.dependencies import CommonQueryParams, db_dependency
+from app.core.security import hash_password
 
-from app.HelperFunctions import hash_password, verify_password
-from app.db import db_dependency
-from app.dependencies import CommonQueryParams
-from app.models.student_model import Department, Student, StudentCreate, StudentPublic, StudentPublicWithAll, StudentPublicWithGP, StudentUpdate
-from app.models.subject_model import Subject, SubjectPublic
-from app.models.email_model import Email, EmailCreate, EmailPublicWithAll
+from app.models.student_model import Student
+from app.models.subject_model import Subject
+from app.models.email_model import Email
 from app.models.GP_model import GP
+
+from app.schemas.email_schema import EmailCreate, EmailPublicWithAll
+from app.schemas.student_schema import Department, StudentCreate, StudentPublic, StudentPublicWithAll, StudentPublicWithGP, StudentUpdate
+from app.schemas.subject_schema import SubjectPublic
+
 from app.routers.auth import get_current_email
 
 

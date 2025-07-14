@@ -24,10 +24,7 @@ def get_session():
     """Get a session for database operations."""
     with Session(engine) as session:
         yield session
-    
-
-db_dependency = Annotated[Session, Depends(get_session)]
-
+        
 
 def drop_table(table: SQLModel):
     """Drop the Email table if it exists."""
