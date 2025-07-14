@@ -1,3 +1,5 @@
+from typing import Annotated
+from fastapi import Depends
 from sqlmodel import create_engine, SQLModel, Session
 
 # sqlite_url = "sqlite:///./students.db"
@@ -9,8 +11,6 @@ from sqlmodel import create_engine, SQLModel, Session
 #  DATABASE_URL = "mysql+pymysql://<username>:<password>@<host>/<database>"
 DATABASE_URL = "mysql+pymysql://root:manga123@localhost/college"
 engine = create_engine(DATABASE_URL, echo=True) # remove echo=True in production
-
-
 
 
 # Function to create the database tables
@@ -25,6 +25,9 @@ def get_session():
     with Session(engine) as session:
         yield session
     
+
+db_dependency = Annotated[Session, Depends(get_session)]
+
 
 def drop_table(table: SQLModel):
     """Drop the Email table if it exists."""

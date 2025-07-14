@@ -3,9 +3,9 @@ from pydantic import BaseModel, field_validator
 from sqlmodel import Field, SQLModel, Relationship
 from typing import Optional
 
-from .subject_model import Subject, StudentSubjectLink, SubjectPublic
-from .GP_model import GP, GPPublic, GPCreate
-from .email_model import Email, EmailPublic
+from app.models.subject_model import Subject, StudentSubjectLink, SubjectPublic
+from app.models.GP_model import GP, GPPublic, GPCreate
+from app.models.email_model import Email, EmailPublic
 
 
 # Enum for allowed departement types
@@ -51,6 +51,8 @@ class Student(StudentBase, table=True):
 
 # SQLModel model for Student create
 class StudentCreate(StudentBase):
+    model_config = {"extra": "forbid"}
+
     # subjects: list[SubjectBase] | None = None
     graduation_project: GPCreate | None = None
 

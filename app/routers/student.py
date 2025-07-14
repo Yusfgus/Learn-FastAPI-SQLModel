@@ -2,13 +2,15 @@ from typing import Annotated
 from fastapi import Body, Depends, Path, Query, APIRouter, HTTPException
 from sqlmodel import Session, select
 
-from ..HelperFunctions import hash_password, verify_password
-from ..db import get_session
-from ..dependencies import CommonQueryParams
-from ..models.student_model import Department, Student, StudentCreate, StudentPublic, StudentPublicWithAll, StudentPublicWithGP, StudentUpdate
-from ..models.subject_model import Subject, SubjectPublic
-from ..models.email_model import Email, EmailCreate, EmailPublicWithAll
-from ..models.GP_model import GP
+
+from app.HelperFunctions import hash_password, verify_password
+from app.db import db_dependency
+from app.dependencies import CommonQueryParams
+from app.models.student_model import Department, Student, StudentCreate, StudentPublic, StudentPublicWithAll, StudentPublicWithGP, StudentUpdate
+from app.models.subject_model import Subject, SubjectPublic
+from app.models.email_model import Email, EmailCreate, EmailPublicWithAll
+from app.models.GP_model import GP
+from app.routers.auth import get_current_email
 
 
 router = APIRouter(
@@ -21,9 +23,10 @@ router = APIRouter(
 @router.get("/", response_model=list[StudentPublic])
 def get_students(
     commons: Annotated[CommonQueryParams, Depends()],
+    session: db_dependency,
+    email: Annotated[Email, Depends(get_current_email)],
     department: Department | None = None,
     age: Annotated[int | None, Query(gt=0, le=100)] = None,
-    session: Session = Depends(get_session),
 ) -> list[Student]:
     
     statement = select(Student)
@@ -50,7 +53,8 @@ def get_students(
 @router.get("/{student_id}", response_model=StudentPublicWithAll)
 def get_student_by_id(
     student_id: Annotated[int, Path(title="Student ID")],
-    session: Session = Depends(get_session),
+    session: db_dependency,
+    email: Annotated[Email, Depends(get_current_email)],
 ) -> Student:
     
     student = session.get(Student, student_id)
@@ -63,7 +67,8 @@ def get_student_by_id(
 @router.post("/add", response_model=StudentPublicWithGP)
 def add_student(
     student_data: StudentCreate,
-    session: Session = Depends(get_session),
+    session: db_dependency,
+    email: Annotated[Email, Depends(get_current_email)],
 ) -> Student:
 
     '''
@@ -98,7 +103,8 @@ def add_student(
 def update_student(
     student_id: Annotated[int, Path(title="Student ID")],
     new_student: StudentUpdate,
-    session: Session = Depends(get_session),
+    session: db_dependency,
+    email: Annotated[Email, Depends(get_current_email)],
 ) -> Student:
 
     student_db = session.get(Student, student_id)
@@ -119,7 +125,8 @@ def update_student(
 @router.delete("/{student_id}", response_model=dict[str, str | StudentPublic])
 def delete_student(
     student_id: Annotated[int, Path(title="Student ID")],
-    session: Session = Depends(get_session),
+    session: db_dependency,
+    email: Annotated[Email, Depends(get_current_email)],
 ) -> dict:
     
     student = session.get(Student, student_id)
@@ -137,25 +144,25 @@ def delete_student(
     }
 
 
-# Endpoint for logging in a student
-@router.post("/login")
-def student_login(
-    email_data: EmailCreate,
-    session: Session = Depends(get_session),
-) -> dict[str, str]:
+# # Endpoint for logging in a student
+# @router.post("/login")
+# def student_login(
+#     email_data: EmailCreate,
+#     session: db_dependency,
+# ) -> dict[str, str]:
     
-    email_db = session.exec(select(Email).where(Email.email == email_data.email)).first()
-    if email_db is None:
-        raise HTTPException(status_code=404, detail="Email not found")
+#     email_db = session.exec(select(Email).where(Email.email == email_data.email)).first()
+#     if email_db is None:
+#         raise HTTPException(status_code=404, detail="Email not found")
     
-    if not verify_password(plain_password=email_data.password, hashed_password=email_db.hashed_password):
-        raise HTTPException(status_code=401, detail="Wrong password")
+#     if not verify_password(plain_password=email_data.password, hashed_password=email_db.hashed_password):
+#         raise HTTPException(status_code=401, detail="Wrong password")
     
-    student = session.get(Student, email_db.student_id)
-    if student is None:
-        raise HTTPException(status_code=404, detail="Email found but Student not found")
+#     student = session.get(Student, email_db.student_id)
+#     if student is None:
+#         raise HTTPException(status_code=404, detail="Email found but Student not found")
 
-    return {"message": "Login successful", "student": student.name}
+#     return {"message": "Login successful", "student": student.name}
 
 
 # assign email to a student
@@ -163,7 +170,7 @@ def student_login(
 def add_student_email(
     student_id: Annotated[int, Path(title="Student ID")],
     email_data: EmailCreate,
-    session: Session = Depends(get_session),
+    session: db_dependency,
 ) -> Email:
     
     student = session.get(Student, student_id)
@@ -189,7 +196,8 @@ def add_student_email(
 @router.get("/{student_id}/subjects", response_model=list[SubjectPublic])
 def get_student_subjects(
     student_id: Annotated[int, Path(title="Student ID")],
-    session: Session = Depends(get_session),
+    session: db_dependency,
+    email: Annotated[Email, Depends(get_current_email)],
 ) -> list[Subject]:
     
     student = session.get(Student, student_id)
@@ -204,7 +212,8 @@ def get_student_subjects(
 def add_subject_to_student(
     student_id: Annotated[int, Path(title="Student ID")],
     subject_ids: Annotated[list[int], Body(title="Subjects IDs")],
-    session: Session = Depends(get_session),
+    session: db_dependency,
+    email: Annotated[Email, Depends(get_current_email)],
 ) -> dict:
     
     student = session.get(Student, student_id)

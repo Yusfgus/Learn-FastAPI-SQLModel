@@ -2,9 +2,10 @@ from typing import Annotated
 from fastapi import Depends, Path, APIRouter, HTTPException
 from sqlmodel import Session, select
 
-from ..db import get_session
-from ..dependencies import CommonQueryParams
-from ..models.email_model import Email, EmailPublic, EmailPublicWithAll
+from app.db import db_dependency
+from app.dependencies import CommonQueryParams
+from app.models.email_model import Email, EmailPublic, EmailPublicWithAll
+from app.routers.auth import get_current_email
 
 
 router = APIRouter(
@@ -16,7 +17,8 @@ router = APIRouter(
 @router.get("/", response_model=list[EmailPublic])
 def get_emails(
     commons: Annotated[CommonQueryParams, Depends()],
-    session: Session = Depends(get_session),
+    session: db_dependency,
+    email: Annotated[Email, Depends(get_current_email)],
 ) -> list[Email]:
     
     statement = select(Email).offset(commons.skip).limit(commons.limit)
@@ -28,7 +30,8 @@ def get_emails(
 @router.get("/{email_id}", response_model=EmailPublicWithAll)
 def get_email_by_id(
     email_id: Annotated[int, Path(title="Email ID")],
-    session: Session = Depends(get_session),
+    session: db_dependency,
+    email: Annotated[Email, Depends(get_current_email)],
 ) -> Email:
     
     email = session.get(Email, email_id)

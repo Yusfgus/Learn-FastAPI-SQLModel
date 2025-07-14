@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from .student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
+    from app.models.student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
 
 
 # SQLModel model for Graduation project base
@@ -26,7 +26,7 @@ class GP(GPBase, table=True):
 
 
 class GPCreate(GPBase):
-    pass
+    model_config = {"extra": "forbid"}
 
 
 class GPPublic(GPBase):
@@ -50,7 +50,7 @@ class GPPublicWithAll(GPPublicWithStudent):
         from_attributes = True  # Enable ORM mode for compatibility with SQLModel
 
 
-def rebuld_models():
+def rebuild_models():
     # Lazy runtime import to avoid circular import
     from .student_model import StudentPublic
 
@@ -58,4 +58,4 @@ def rebuld_models():
     GPPublicWithStudent.model_rebuild()
     GPPublicWithAll.model_rebuild()
 
-    print("GP models rebuld successfully")
+    print("GP models rebuild successfully")

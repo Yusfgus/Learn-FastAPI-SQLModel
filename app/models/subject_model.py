@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from .student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
+    from app.models.student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
 
 
 # SQLModel model for StudentSubjectLink, representing the many-to-many relationship between Student and Subject
@@ -39,7 +39,7 @@ class Subject(SubjectBase, table=True):
 
 # SQLModel model for Subject create
 class SubjectCreate(SubjectBase):
-    pass
+    model_config = {"extra": "forbid"}
 
 
 # SQLModel model for Subject Public
@@ -63,7 +63,7 @@ class SubjectPublicWithAll(SubjectPublicWithStudents):
         from_attributes = True  # Enable ORM mode for compatibility with SQLModel
 
 
-def rebuld_models():
+def rebuild_models():
     # Lazy runtime import to avoid circular import
     from .student_model import StudentPublic
 
@@ -71,4 +71,4 @@ def rebuld_models():
     SubjectPublicWithStudents.model_rebuild()
     SubjectPublicWithAll.model_rebuild()
 
-    print("Subject models rebuld successfully")
+    print("Subject models rebuild successfully")

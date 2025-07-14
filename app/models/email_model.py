@@ -3,7 +3,7 @@ from typing import Optional, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from .student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
+    from app.models.student_model import Student, StudentPublic  # Import only for type checking to avoid circular imports
 
 
 class EmailBase(SQLModel):
@@ -48,6 +48,8 @@ class EmailPublicWithAll(EmailPublicWithStudent):
 
 # SQLModel model for Email create
 class EmailCreate(EmailBase):
+    model_config = {"extra": "forbid"}
+
     password: str
 
 
@@ -62,7 +64,7 @@ class EmailUpdate(SQLModel):
     password: str | None = None
 
 
-def rebuld_models():
+def rebuild_models():
     # Lazy runtime import to avoid circular import
     from .student_model import StudentPublic
 
@@ -70,4 +72,4 @@ def rebuld_models():
     EmailPublicWithStudent.model_rebuild()
     EmailPublicWithAll.model_rebuild()
 
-    print("Email models rebuld successfully")
+    print("Email models rebuild successfully")
